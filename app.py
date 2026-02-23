@@ -4,6 +4,10 @@ import os
 import secrets
 from werkzeug.utils import secure_filename
 import datetime
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from flask import send_file
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
@@ -475,6 +479,64 @@ def teacher_dashboard():
         teacher=teacher_data,
         stats=stats,
         recent_entries=recent_entries,
+    )
+
+
+@app.route("/export-pdf")
+def export_pdf():
+    if not session.get("logged_in") or not session.get("student_id"):
+        return redirect(url_for("student"))
+
+    student_id = session.get("student_id")
+    student_name = session.get("student_name")
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM achievements WHERE student_id = ? ORDER BY achievement_date DESC",
+        (student_id,),
+    )
+    achievements = cursor.fetchall()
+    connection.close()
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    # Title
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, height - 50, f"Achievement Report: {student_name}")
+    p.setFont("Helvetica", 12)
+    p.drawString(100, height - 70, f"Student ID: {student_id}")
+    p.line(100, height - 80, 500, height - 80)
+
+    y = height - 110
+    for ach in achievements:
+        if y < 100:
+            p.showPage()
+            y = height - 50
+            p.setFont("Helvetica-Bold", 12)
+
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(100, y, f"{ach['achievement_type']}: {ach['event_name']}")
+        y -= 15
+        p.setFont("Helvetica", 10)
+        p.drawString(120, y, f"Date: {ach['achievement_date']} | Position: {ach['position']}")
+        y -= 15
+        p.drawString(120, y, f"Organizer: {ach['organizer']}")
+        y -= 25
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"Achievements_{student_id}.pdf",
+        mimetype="application/pdf",
     )
 
 
