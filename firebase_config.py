@@ -2,6 +2,7 @@
 Firebase Configuration Module
 Loads Firebase credentials from environment variables (.env file)
 """
+
 import os
 from dotenv import load_dotenv
 
@@ -18,8 +19,9 @@ FIREBASE_CONFIG = {
     "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
-    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID")
+    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID"),
 }
+
 
 def get_firebase_config():
     """
@@ -28,14 +30,17 @@ def get_firebase_config():
     """
     return FIREBASE_CONFIG
 
+
 def validate_firebase_config():
     """
     Validates that all required Firebase config values are present
     """
     required_keys = ["apiKey", "authDomain", "projectId", "appId"]
     missing_keys = [key for key in required_keys if not FIREBASE_CONFIG.get(key)]
-    
+
     if missing_keys:
-        raise ValueError(f"Missing Firebase configuration keys: {missing_keys}. Please check your .env file.")
-    
+        raise ValueError(
+            f"Missing Firebase configuration keys: {missing_keys}. Please check your .env file."
+        )
+
     return True
