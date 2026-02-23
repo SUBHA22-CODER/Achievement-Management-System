@@ -12,7 +12,9 @@ app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 DB_PATH = os.path.join(os.path.dirname(__file__), "ams.db")
 
 # Define upload folder path for certificates
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+UPLOAD_FOLDER = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "static", "uploads"
+)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
@@ -30,13 +32,17 @@ def ensure_achievements_schema(connection):
 
     if "teacher_id" not in column_names:
         print("Adding teacher_id column to achievements table...")
-        cursor.execute("ALTER TABLE achievements ADD COLUMN teacher_id TEXT DEFAULT 'unknown'")
+        cursor.execute(
+            "ALTER TABLE achievements ADD COLUMN teacher_id TEXT DEFAULT 'unknown'"
+        )
         print("teacher_id column added successfully")
 
     if "created_at" not in column_names:
         print("Adding created_at column to achievements table...")
         cursor.execute("ALTER TABLE achievements ADD COLUMN created_at TEXT")
-        cursor.execute("UPDATE achievements SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+        cursor.execute(
+            "UPDATE achievements SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
+        )
         print("created_at column added and backfilled successfully")
 
     connection.commit()
@@ -118,7 +124,9 @@ def init_db():
         cursor = connection.cursor()
 
         # Ensure achievements table exists
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='achievements'")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='achievements'"
+        )
         if not cursor.fetchone():
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS achievements (
@@ -178,7 +186,10 @@ def student():
 
         connection = sqlite3.connect(DB_PATH)
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM student WHERE student_id = ? AND password = ?", (student_id, password))
+        cursor.execute(
+            "SELECT * FROM student WHERE student_id = ? AND password = ?",
+            (student_id, password),
+        )
         student_data = cursor.fetchone()
         connection.close()
 
@@ -189,7 +200,9 @@ def student():
             session["student_dept"] = student_data[6]
             return redirect(url_for("student-dashboard"))
         else:
-            return render_template("student.html", error="Invalid credentials. Please try again.")
+            return render_template(
+                "student.html", error="Invalid credentials. Please try again."
+            )
 
     return render_template("student.html")
 
@@ -202,7 +215,10 @@ def teacher():
 
         connection = sqlite3.connect(DB_PATH)
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM teacher WHERE teacher_id = ? AND password = ?", (teacher_id, password))
+        cursor.execute(
+            "SELECT * FROM teacher WHERE teacher_id = ? AND password = ?",
+            (teacher_id, password),
+        )
         teacher_data = cursor.fetchone()
         connection.close()
 
@@ -213,7 +229,9 @@ def teacher():
             session["teacher_dept"] = teacher_data[6]
             return redirect(url_for("teacher-dashboard"))
         else:
-            return render_template("teacher.html", error="Invalid credentials. Please try again.")
+            return render_template(
+                "teacher.html", error="Invalid credentials. Please try again."
+            )
 
     return render_template("teacher.html")
 
@@ -245,10 +263,21 @@ def student_new():
         """)
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO student (student_name, student_id, email, phone_number, password, student_gender, student_dept)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (student_name, student_id, email, phone_number, password, student_gender, student_dept))
+            """,
+                (
+                    student_name,
+                    student_id,
+                    email,
+                    phone_number,
+                    password,
+                    student_gender,
+                    student_dept,
+                ),
+            )
             connection.commit()
             return redirect(url_for("student"))
         except sqlite3.Error as e:
@@ -286,10 +315,21 @@ def teacher_new():
         """)
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO teacher (teacher_name, teacher_id, email, phone_number, password, teacher_gender, teacher_dept)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (teacher_name, teacher_id, email, phone_number, password, teacher_gender, teacher_dept))
+            """,
+                (
+                    teacher_name,
+                    teacher_id,
+                    email,
+                    phone_number,
+                    password,
+                    teacher_gender,
+                    teacher_dept,
+                ),
+            )
             connection.commit()
             return redirect(url_for("teacher"))
         except sqlite3.Error as e:
@@ -305,7 +345,9 @@ def teacher_achievements():
     return render_template("teacher_achievements_2.html")
 
 
-@app.route("/submit_achievements", endpoint="submit_achievements", methods=["GET", "POST"])
+@app.route(
+    "/submit_achievements", endpoint="submit_achievements", methods=["GET", "POST"]
+)
 def submit_achievements():
     if not session.get("logged_in") or not session.get("teacher_id"):
         return redirect(url_for("teacher"))
@@ -344,8 +386,10 @@ def submit_achievements():
                 file = request.files["certificate"]
                 if file and file.filename != "":
                     if not allowed_file(file.filename):
-                        return render_template("submit_achievements.html",
-                                               error="Invalid file type. Please upload PDF, PNG, JPG, or JPEG files.")
+                        return render_template(
+                            "submit_achievements.html",
+                            error="Invalid file type. Please upload PDF, PNG, JPG, or JPEG files.",
+                        )
                     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                     secure_name = f"{timestamp}_{secure_filename(file.filename)}"
                     file_path = os.path.join(UPLOAD_FOLDER, secure_name)
@@ -359,15 +403,22 @@ def submit_achievements():
                 ensure_achievements_schema(connection)
 
                 # Validate student exists
-                cursor.execute("SELECT student_id, student_name FROM student WHERE student_id = ?", (student_id,))
+                cursor.execute(
+                    "SELECT student_id, student_name FROM student WHERE student_id = ?",
+                    (student_id,),
+                )
                 student_data = cursor.fetchone()
                 if not student_data:
-                    return render_template("submit_achievements.html", error="Student ID does not exist in the system.")
+                    return render_template(
+                        "submit_achievements.html",
+                        error="Student ID does not exist in the system.",
+                    )
 
                 student_name = student_data[1]
 
                 # ✅ Insert with created_at so dashboard ordering never breaks
-                cursor.execute("""
+                cursor.execute(
+                    """
                 INSERT INTO achievements (
                     student_id, teacher_id, achievement_type, event_name, achievement_date,
                     organizer, position, achievement_description, certificate_path,
@@ -376,23 +427,47 @@ def submit_achievements():
                     project_title, database_type, difficulty_level, other_description,
                     created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (
-                    student_id, teacher_id, achievement_type, event_name, achievement_date,
-                    organizer, position, achievement_description, certificate_path,
-                    symposium_theme, programming_language, coding_platform, paper_title,
-                    journal_name, conference_level, conference_role, team_size,
-                    project_title, database_type, difficulty_level, other_description
-                ))
+                """,
+                    (
+                        student_id,
+                        teacher_id,
+                        achievement_type,
+                        event_name,
+                        achievement_date,
+                        organizer,
+                        position,
+                        achievement_description,
+                        certificate_path,
+                        symposium_theme,
+                        programming_language,
+                        coding_platform,
+                        paper_title,
+                        journal_name,
+                        conference_level,
+                        conference_role,
+                        team_size,
+                        project_title,
+                        database_type,
+                        difficulty_level,
+                        other_description,
+                    ),
+                )
 
                 connection.commit()
 
-            success_message = f"Achievement of {student_name} has been successfully registered!!"
+            success_message = (
+                f"Achievement of {student_name} has been successfully registered!!"
+            )
             return render_template("submit_achievements.html", success=success_message)
 
         except Exception as e:
-            return render_template("submit_achievements.html", error=f"An error occurred: {e}")
+            return render_template(
+                "submit_achievements.html", error=f"An error occurred: {e}"
+            )
 
-    return redirect(url_for("teacher-dashboard", success="Achievement submitted successfully!"))
+    return redirect(
+        url_for("teacher-dashboard", success="Achievement submitted successfully!")
+    )
 
 
 @app.route("/student-achievements", endpoint="student-achievements")
@@ -440,18 +515,28 @@ def teacher_dashboard():
     # ✅ Ensure schema exists so query never crashes
     ensure_achievements_schema(connection)
 
-    cursor.execute("SELECT COUNT(*) FROM achievements WHERE teacher_id = ?", (teacher_id,))
+    cursor.execute(
+        "SELECT COUNT(*) FROM achievements WHERE teacher_id = ?", (teacher_id,)
+    )
     total_achievements = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(DISTINCT student_id) FROM achievements WHERE teacher_id = ?", (teacher_id,))
+    cursor.execute(
+        "SELECT COUNT(DISTINCT student_id) FROM achievements WHERE teacher_id = ?",
+        (teacher_id,),
+    )
     students_managed = cursor.fetchone()[0]
 
-    one_week_ago = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
-    cursor.execute("SELECT COUNT(*) FROM achievements WHERE teacher_id = ? AND achievement_date >= ?",
-                   (teacher_id, one_week_ago))
+    one_week_ago = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime(
+        "%Y-%m-%d"
+    )
+    cursor.execute(
+        "SELECT COUNT(*) FROM achievements WHERE teacher_id = ? AND achievement_date >= ?",
+        (teacher_id, one_week_ago),
+    )
     this_week_count = cursor.fetchone()[0]
 
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT a.id, a.student_id, s.student_name, a.achievement_type,
                a.event_name, a.achievement_date
         FROM achievements a
@@ -459,7 +544,9 @@ def teacher_dashboard():
         WHERE a.teacher_id = ?
         ORDER BY a.created_at DESC
         LIMIT 5
-    """, (teacher_id,))
+    """,
+        (teacher_id,),
+    )
     recent_entries = cursor.fetchall()
 
     connection.close()
@@ -489,7 +576,8 @@ def all_achievements():
     connection.row_factory = sqlite3.Row
     cursor = connection.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT a.id, a.student_id, s.student_name, a.achievement_type,
                a.event_name, a.achievement_date, a.position, a.organizer,
                a.certificate_path
@@ -497,7 +585,9 @@ def all_achievements():
         JOIN student s ON a.student_id = s.student_id
         WHERE a.teacher_id = ?
         ORDER BY a.achievement_date DESC
-    """, (teacher_id,))
+    """,
+        (teacher_id,),
+    )
 
     achievements = cursor.fetchall()
     connection.close()
@@ -508,4 +598,3 @@ def all_achievements():
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
-
